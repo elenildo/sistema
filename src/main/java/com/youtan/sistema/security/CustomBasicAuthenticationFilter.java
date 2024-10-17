@@ -7,7 +7,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,12 +27,12 @@ public class CustomBasicAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if(isBasicAuthentication(request)) {
             String[] credentials =  decodeBase64(request.getHeader("Authorization")
-                    .replace("Basic", ""))
+                    .replace("Basic ", ""))
                     .split(":");
             String username = credentials[0];
             String password = credentials[1];
 
-            var user = userRepository.findByUsername(username);
+            var user = userRepository.findByUsernameFetchHoles(username);
 
             if(user.isEmpty()) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -42,7 +41,7 @@ public class CustomBasicAuthenticationFilter extends OncePerRequestFilter {
             }
             boolean valid = checkPassword(password, user.get().getPassword());
 
-            if(valid) {
+            if(!valid) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Senha incorreta");
                 return;
@@ -51,6 +50,8 @@ public class CustomBasicAuthenticationFilter extends OncePerRequestFilter {
             Authentication auth = setAuthentication(user.get());
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
+
+        filterChain.doFilter(request, response);
 
     }
 
@@ -65,7 +66,6 @@ public class CustomBasicAuthenticationFilter extends OncePerRequestFilter {
 
     private String decodeBase64(String base64) {
         byte[] decodeBytes = Base64.getDecoder().decode(base64);
-
         return new String(decodeBytes);
     }
 

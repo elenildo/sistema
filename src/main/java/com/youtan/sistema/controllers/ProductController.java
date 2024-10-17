@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     @GetMapping
-    @PreAuthorize("hasHole('PRODUCT_SELECT')")
+    @PreAuthorize("hasRole('PRODUCT_SELECT')")
     public ResponseEntity<?> list() {
-
         return ResponseEntity.ok().build();
     }
 }
